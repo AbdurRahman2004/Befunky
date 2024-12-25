@@ -9,7 +9,7 @@ import Login from './components/Login'
 import { ToastContainer } from 'react-toastify';
 
 export const backendURL = import.meta.env.VITE_BACKEND_URL
-
+export const currency = '$'
 const App = () => {
   const [token , setToken] = useState(localStorage.getItem('token')?localStorage.getItem('token'): '')
   

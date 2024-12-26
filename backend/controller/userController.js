@@ -8,7 +8,7 @@ import jwt from "jsonwebtoken"
 const createToken = (id) => {
     return jwt.sign({id},process.env.JWT_SECRET)
 
-    // this will seal the id with the signature we provide and whenever client get the id he tries to open it with the same seal if it matches then accept or else the dserver will reject it
+    // this will seal the id with the signature we provide and whenever client get the id he tries to open it with the same seal if it matches then accept or else the server will reject it
 }
 
 

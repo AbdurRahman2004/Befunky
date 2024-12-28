@@ -89,7 +89,7 @@ const ShopContextProvider = (props) => {
      const getCartAmount =  () =>{
       let totalAmount = 0;
       for(const items in cartItems){
-            console.log(items);
+      //      console.log(items);
             let itemInfo = products.find((product)=>product._id === items)
             for(const item in cartItems[items]){
                   try{

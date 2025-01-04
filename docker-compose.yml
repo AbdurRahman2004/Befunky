@@ -1,0 +1,43 @@
+version: '3.9'
+
+services:
+ frontend:
+   build:
+      context: ./Frontend
+      dockerfile: dockerfile
+   ports:
+    - "5173:80"
+   env_file:
+      - ./Frontend/.env
+   depends_on:
+    - backend
+   networks:
+    - app-network
+  
+ backend: 
+    build:
+     context: ./backend
+     dockerfile: dockerfile
+    ports:
+      - "4000:4000"
+    env_file:
+      - ./backend/.env
+    networks:
+      - app-network
+
+ admin:
+   build:
+     context: ./admin
+     dockerfile: dockerfile
+   ports:
+    - "5174:80"
+   env_file:
+      - ./admin/.env
+   depends_on:
+    - backend
+   networks:
+    - app-network    
+
+networks:
+ app-network:
+   driver: bridge

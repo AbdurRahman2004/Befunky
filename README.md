@@ -15,8 +15,6 @@ This is a full-stack web application built using **Vite + React** for both the f
 ---
 
 
----
-
 ## 📂 Project Setup
 
 ### 1️⃣ Clone the Repository
@@ -158,7 +156,4 @@ Now, open `http://localhost:5173` in your browser to access the application.
 This project is licensed under the MIT License.
 
 ---
-
-### 🎯 Happy Coding! 🚀
-```
 

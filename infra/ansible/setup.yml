@@ -1,0 +1,51 @@
+---
+- name: Provision EC2 and deploy backend container
+  hosts: web
+  become: yes
+  vars:
+    backend_image: abdurrahman010/ecom-backend:latest  # Change if needed
+    container_name: backend-container
+    backend_port: 4000
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+
+    - name: Start and enable Docker
+      systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+    - name: Install Nginx (optional - only if you want reverse proxy)
+      apt:
+        name: nginx
+        state: present
+
+    - name: Copy .env file to EC2
+      copy:
+        src: ../backend/.env
+        dest: /home/ubuntu/.env
+        owner: ubuntu
+        group: ubuntu
+        mode: '0600'
+
+    - name: Pull Docker image
+      docker_image:
+        name: "{{ backend_image }}"
+        source: pull
+
+    - name: Run backend Docker container
+      docker_container:
+        name: "{{ container_name }}"
+        image: "{{ backend_image }}"
+        state: started
+        restart_policy: always
+        ports:
+          - "{{ backend_port }}:{{ backend_port }}"
+        env_file: /home/ubuntu/.env

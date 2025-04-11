@@ -25,6 +25,9 @@ terraform.tfstate.backup
 
 
 
+infra/Terraform/.terraform/
+infra/Terraform/*.pem
+infra/Terraform/*.tfstate*
 
 node_modules
 dist

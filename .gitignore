@@ -10,13 +10,18 @@ lerna-debug.log*
 
 # Terraform sensitive files
 # Ignore Terraform local state and dependencies
-# Ignore Terraform state and provider binaries
-.terraform/
-*.tfstate
-*.tfstate.backup
+# Terraform
+.terraform/                     # local terraform plugins and modules
+*.tfstate                       # state file
+*.tfstate.backup                # state backup
+*.tfvars                        # tfvars can contain secrets (optional to ignore)
+crash.log                       # crash logs
+*.tfplan                        # binary plan output
 terraform.tfstate
 terraform.tfstate.backup
-*.pem
+.terraform.lock.hcl             # optional (can keep it for provider locking)
+*.pem                           # SSH/private key files
+
 
 
 

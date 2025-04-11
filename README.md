@@ -1,8 +1,4 @@
-Got it! Here’s the updated `README.md` with the **frontend environment variable** included:  
 
----
-
-```md
 # Vite React Full-Stack Application
 
 This is a full-stack web application built using **Vite + React** for both the frontend and backend. This README provides step-by-step instructions to set up and run the project on your local development environment.

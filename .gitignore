@@ -1,0 +1,52 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+
+
+# Ignore Terraform local state and dependencies
+# Terraform
+.terraform/                     # local terraform plugins and modules
+*.tfstate                       # state file
+*.tfstate.backup                # state backup
+*.tfvars                        # tfvars can contain secrets (optional to ignore)
+crash.log                       # crash logs
+*.tfplan                        # binary plan output
+terraform.tfstate
+terraform.tfstate.backup
+.terraform.lock.hcl             # optional (can keep it for provider locking)
+*.pem                           # SSH/private key files
+
+
+
+
+
+infra/Terraform/terraform-key.pem
+infra/Terraform/terraform.tfstate
+infra/Terraform/terraform.tfstate.backup
+infra/Terraform/.terraform/
+
+
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.env
+.terraform/

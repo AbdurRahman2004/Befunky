@@ -9,10 +9,16 @@ lerna-debug.log*
 
 
 # Terraform sensitive files
-infra/Terraform/terraform-key.pem
-infra/Terraform/terraform.tfstate
-infra/Terraform/terraform.tfstate.backup
-infra/Terraform/.terraform/
+# Ignore Terraform local state and dependencies
+# Ignore Terraform state and provider binaries
+.terraform/
+*.tfstate
+*.tfstate.backup
+terraform.tfstate
+terraform.tfstate.backup
+*.pem
+
+
 
 
 node_modules

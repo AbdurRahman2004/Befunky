@@ -135,7 +135,3 @@ Now, open `http://localhost:5173` in your browser to access the application.
 This project is licensed under the MIT License.
 
 ---
-
-### 🎯 Happy Coding! 🚀
-```
-

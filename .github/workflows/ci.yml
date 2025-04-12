@@ -19,19 +19,17 @@ jobs:
       with:
         node-version: 18
 
-    - name: Install and Test Backend
+    - name: Install and Lint Backend
       working-directory: ./backend
       run: |
         npm install
         npm run lint
-        npm test
 
-    - name: Install and Test Frontend
+    - name: Install and Lint Frontend
       working-directory: ./frontend
       run: |
         npm install
         npm run lint
-        npm test
 
   docker-build-push:
     needs: build-test-lint

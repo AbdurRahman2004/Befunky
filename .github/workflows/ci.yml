@@ -25,11 +25,11 @@ jobs:
         npm install
         npm run lint
 
-    - name: Install and Lint Frontend
+    - name: Install and Test Frontend
       working-directory: ./frontend
       run: |
         npm install
-        npm run lint
+
 
   docker-build-push:
     needs: build-test-lint

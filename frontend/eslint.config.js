@@ -33,6 +33,12 @@ export default [
         'warn',
         { allowConstantExport: true },
       ],
+      'no-unused-vars': ['warn', {
+        vars: 'all',
+        args: 'none', // Ignore unused function arguments
+        ignoreRestSiblings: true, // Ignore rest siblings like {...props}
+        caughtErrors: 'none', // Do not flag unused caught errors (e.g., `catch (err)`)
+      }],
     },
   },
 ]

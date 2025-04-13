@@ -24,14 +24,19 @@ jobs:
           npm ci
           npm run build
 
+      - name: Verify build output
+        working-directory: frontend
+        run: ls -la dist/
+
       - name: Upload Frontend Build to EC2
         uses: appleboy/scp-action@v0.1.4
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
-          source: "frontend/build/*"
+          source: "frontend/dist/*"
           target: "/var/www/frontend"
+          strip_components: 1  # This removes the 'dist' folder from the path
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.0
@@ -45,10 +50,18 @@ jobs:
             # Install NGINX if not already
             sudo apt update && sudo apt install -y nginx
 
+            # Create directory if it doesn't exist
+            sudo mkdir -p /var/www/frontend
+
+            # Set proper permissions
+            sudo chown -R $USER:$USER /var/www/frontend
+            sudo chmod -R 755 /var/www/frontend
+
             # Setup NGINX config for frontend + reverse proxy
             sudo tee /etc/nginx/sites-available/ecommerce > /dev/null <<EOF
             server {
               listen 80;
+              server_name yourdomain.com;
 
               root /var/www/frontend;
               index index.html;
@@ -83,4 +96,5 @@ jobs:
             sudo docker run -d \
               --name backend \
               -p 3000:3000 \
+              -e NODE_ENV=production \
               ${{ secrets.DOCKERHUB_USERNAME }}/my-backend:latest

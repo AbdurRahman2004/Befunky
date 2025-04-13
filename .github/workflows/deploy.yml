@@ -1,3 +1,38 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js for build
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install & Build Frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Upload Frontend Build to EC2
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          source: "frontend/build/*"
+          target: "/var/www/frontend"
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.0
         with:

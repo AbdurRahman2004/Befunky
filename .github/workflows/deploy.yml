@@ -13,35 +13,48 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Setup Node.js for build
+      - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version: '18'
 
-      - name: Install & Build Frontend
+      # Frontend Build
+      - name: Build Frontend
         working-directory: frontend
         run: |
           npm ci
           npm run build
+        env:
+          VITE_API_BASE_URL: '/api'  # Critical for production API paths
 
-      - name: Verify build output
-        working-directory: frontend
-        run: ls -la dist/
-
-      - name: Prepare EC2 Directory
+      # Backend Deployment
+      - name: Deploy Backend Container
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
           script: |
-            echo "🛠️ Preparing deployment directory..."
-            sudo mkdir -p /var/www/frontend
-            sudo chown -R $USER:$USER /var/www/frontend
-            sudo chmod -R 775 /var/www/frontend
-            ls -la /var/www/frontend
+            # Stop and clean existing container
+            sudo docker stop backend || true
+            sudo docker rm backend || true
+            
+            # Pull latest backend image
+            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/my-backend:latest
+            
+            # Run with production config
+            sudo docker run -d \
+              --name backend \
+              --restart unless-stopped \
+              --network host \
+              -p 3000:3000 \
+              -e NODE_ENV=production \
+              -e BIND_ADDRESS=0.0.0.0 \
+              -e CORS_ORIGIN="http://${{ secrets.DOMAIN }},http://${{ secrets.EC2_HOST }}" \
+              ${{ secrets.DOCKERHUB_USERNAME }}/my-backend:latest
 
-      - name: Upload Frontend Build
+      # Frontend Deployment
+      - name: Deploy Frontend Files
         uses: appleboy/scp-action@v0.1.4
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -49,84 +62,78 @@ jobs:
           key: ${{ secrets.EC2_KEY }}
           source: "frontend/dist/**"
           target: "/var/www/frontend"
-          strip_components: 1
           overwrite: true
+          strip_components: 0
 
-      - name: Set Final Permissions
+      # Server Configuration
+      - name: Configure Server
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
           script: |
-            echo "🔒 Setting final permissions..."
+            # Set permissions
             sudo chown -R www-data:www-data /var/www/frontend
-            sudo chmod -R 755 /var/www/frontend
-
-      - name: Deploy Backend & Configure Nginx
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_KEY }}
-          script: |
-            echo "🚀 Starting full deployment..."
-            
-            # Install dependencies
-            sudo apt update
-            sudo apt install -y nginx docker.io
+            sudo find /var/www/frontend -type d -exec chmod 755 {} \;
+            sudo find /var/www/frontend -type f -exec chmod 644 {} \;
             
             # Configure Nginx
             sudo tee /etc/nginx/sites-available/ecommerce > /dev/null <<'EOF'
             server {
-              listen 80;
-              server_name ${{ secrets.DOMAIN || '$host' }};
-              
-              root /var/www/frontend;
-              index index.html;
-              
-              location / {
-                try_files $uri $uri/ /index.html;
-              }
-              
-              location /api/ {
-                proxy_pass http://localhost:3000;
-                proxy_http_version 1.1;
-                proxy_set_header Upgrade $http_upgrade;
-                proxy_set_header Connection 'upgrade';
-                proxy_set_header Host $host;
-                proxy_cache_bypass $http_upgrade;
-                proxy_set_header X-Real-IP $remote_addr;
-              }
+                listen 80;
+                server_name ${{ secrets.DOMAIN }} ${{ secrets.EC2_HOST }};
+                
+                root /var/www/frontend;
+                index index.html;
+                
+                location / {
+                    try_files $uri $uri/ /index.html;
+                    add_header Cache-Control "no-cache";
+                }
+                
+                location /api/ {
+                    proxy_pass http://127.0.0.1:3000/;
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade $http_upgrade;
+                    proxy_set_header Connection 'upgrade';
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_cache_bypass $http_upgrade;
+                }
+                
+                location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
+                    expires 1y;
+                    add_header Cache-Control "public, immutable";
+                }
             }
             EOF
             
-            # Enable Nginx config
+            # Enable configuration
             sudo ln -sf /etc/nginx/sites-available/ecommerce /etc/nginx/sites-enabled/default
             sudo nginx -t && sudo systemctl restart nginx
+
+      # Verification
+      - name: Verify Deployment
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            echo "🔄 Running health checks..."
             
-            # Deploy backend container
-            sudo docker stop backend || true
-            sudo docker rm backend || true
-            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/my-backend:latest
+            # Backend direct check
+            echo "Backend (Direct):"
+            curl -v http://localhost:3000/api/health || exit 1
             
-            sudo docker run -d \
-              --name backend \
-              --restart unless-stopped \
-              -p 3000:3000 \
-              -e NODE_ENV=production \
-              -e BIND_ADDRESS=0.0.0.0 \
-              -e PORT=3000 \
-              ${{ secrets.DOCKERHUB_USERNAME }}/my-backend:latest
+            # Frontend check
+            echo "Frontend:"
+            curl -v http://localhost | grep -q "Loading..." || exit 1
             
-            # Verify deployment
-            echo "🔄 Checking services..."
-            sleep 10  # Wait for services to start
+            # Proxy check
+            echo "API Proxy:"
+            curl -v http://localhost/api/health || exit 1
             
-            echo "🔍 Nginx status:"
-            sudo systemctl status nginx --no-pager
-            
-            echo "🔍 Backend container status:"
-            sudo docker ps -a | grep backend
-            
-            echo "✅ Deployment complete!"
+            echo "✅ All systems operational!"

@@ -1,5 +1,5 @@
 provider "aws" {
-  region = "ap-south-1"
+  region = "us-east-1"
 }
 
 # Generate new SSH key
@@ -7,7 +7,7 @@ resource "tls_private_key" "new_key" {
   algorithm = "RSA"
   rsa_bits  = 2048
 }
-
+// luIUYbv45H3SCp6ao8YfFTwS69wHwpInbP5tSW15
 #  Create key pair in AWS using public key
 resource "aws_key_pair" "generated_key" {
   key_name   = "terraform-key"
@@ -34,7 +34,7 @@ resource "aws_vpc" "my_vpc" {
 resource "aws_subnet" "my_subnet" {
   vpc_id                  = aws_vpc.my_vpc.id
   cidr_block              = "10.0.1.0/24"
-  availability_zone       = "ap-south-1a"
+  availability_zone       = "us-east-1a" 
   map_public_ip_on_launch = true
 
   tags = {
@@ -86,6 +86,14 @@ resource "aws_security_group" "backend_sg" {
   }
 
   ingress {
+    from_port = 80
+    to_port = 80
+    protocol = "tcp"
+    cidr_blocks = [ "0.0.0.0/0" ]
+  }
+
+
+  ingress {
     from_port   = 4000
     to_port     = 4000
     protocol    = "tcp"
@@ -101,20 +109,20 @@ resource "aws_security_group" "backend_sg" {
 }
 
 # S3 bucket (optional)
-resource "aws_s3_bucket" "artifact_bucket" {
-  bucket = "abdur-backend-artifacts-2025"
-  acl    = "private"
+# resource "aws_s3_bucket" "artifact_bucket" {
+#   bucket = "abdur-backend-artifacts-2025"
+#   acl    = "private"
 
-  tags = {
-    Name        = "ArtifactBucket"
-    Environment = "Dev"
-  }
-}
+#   tags = {
+#     Name        = "ArtifactBucket"
+#     Environment = "Dev"
+#   }
+# }
 
 #  EC2 Instance
 resource "aws_instance" "backend_ec2" {
-  ami                         = "ami-0e35ddab05955cf57" # Ubuntu 22.04 LTS (ap-south-1)
-  instance_type               = "t2.micro"
+  ami                         = "ami-084568db4383264d4" # Ubuntu 22.04 LTS (us-east-1)
+  instance_type               = "t2.medium"
   key_name                    = aws_key_pair.generated_key.key_name
   subnet_id                   = aws_subnet.my_subnet.id
   associate_public_ip_address = true

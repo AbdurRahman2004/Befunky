@@ -23,23 +23,23 @@ jobs:
             echo "✅ Logging into EC2 and starting deployment..."
 
             # Stop and remove existing containers if running
-            docker stop frontend || true
-            docker rm frontend || true
-            docker stop backend || true
-            docker rm backend || true
+            sudo docker stop frontend || true
+            sudo docker rm frontend || true
+            sudo docker stop backend || true
+            sudo docker rm backend || true
 
             # Pull latest images from Docker Hub
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/my-frontend:latest
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/my-backend:latest
+            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/my-frontend:latest
+            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/my-backend:latest
 
             # Run backend container
-            docker run -d \
+            sudo docker run -d \
               --name backend \
               -p 3000:3000 \
               ${{ secrets.DOCKERHUB_USERNAME }}/my-backend:latest
 
             # Run frontend container
-            docker run -d \
+            sudo docker run -d \
               --name frontend \
               -p 80:80 \
               ${{ secrets.DOCKERHUB_USERNAME }}/my-frontend:latest

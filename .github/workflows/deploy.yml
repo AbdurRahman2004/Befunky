@@ -13,6 +13,26 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      - name: Setup Node.js for build
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install & Build Frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Upload Frontend Build to EC2
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          source: "frontend/build/*"
+          target: "/var/www/frontend"
+
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.0
         with:
@@ -22,24 +42,45 @@ jobs:
           script: |
             echo "✅ Logging into EC2 and starting deployment..."
 
-            # Stop and remove existing containers if running
-            sudo docker stop frontend || true
-            sudo docker rm frontend || true
+            # Install NGINX if not already
+            sudo apt update && sudo apt install -y nginx
+
+            # Setup NGINX config for frontend + reverse proxy
+            sudo bash -c 'cat > /etc/nginx/sites-available/ecommerce <<EOF
+            server {
+              listen 80;
+
+              root /var/www/frontend;
+              index index.html;
+
+              location / {
+                try_files \$uri /index.html;
+              }
+
+              location /api/ {
+                proxy_pass http://localhost:3000/;
+                proxy_http_version 1.1;
+                proxy_set_header Upgrade \$http_upgrade;
+                proxy_set_header Connection keep-alive;
+                proxy_set_header Host \$host;
+                proxy_cache_bypass \$http_upgrade;
+              }
+            }
+EOF'
+
+            # Enable site and restart NGINX
+            sudo ln -sf /etc/nginx/sites-available/ecommerce /etc/nginx/sites-enabled/default
+            sudo nginx -t && sudo systemctl restart nginx
+
+            # Stop and remove backend container if running
             sudo docker stop backend || true
             sudo docker rm backend || true
 
-            # Pull latest images from Docker Hub
-            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/my-frontend:latest
+            # Pull latest backend image
             sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/my-backend:latest
 
-            # Run backend container
+            # Run backend container (port 3000)
             sudo docker run -d \
               --name backend \
               -p 3000:3000 \
               ${{ secrets.DOCKERHUB_USERNAME }}/my-backend:latest
-
-            # Run frontend container
-            sudo docker run -d \
-              --name frontend \
-              -p 80:80 \
-              ${{ secrets.DOCKERHUB_USERNAME }}/my-frontend:latest

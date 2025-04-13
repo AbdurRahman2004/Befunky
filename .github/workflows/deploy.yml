@@ -28,56 +28,75 @@ jobs:
         working-directory: frontend
         run: ls -la dist/
 
-      - name: Upload Frontend Build to EC2
-        uses: appleboy/scp-action@v0.1.4
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_KEY }}
-          source: "frontend/dist/**"  # Double asterisk for recursive copy
-          target: "/var/www/frontend"
-          strip_components: 1
-          overwrite: true
-
-      - name: Deploy via SSH
+      - name: Prepare EC2 Directory
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USER }}
           key: ${{ secrets.EC2_KEY }}
           script: |
-            echo "✅ Starting deployment..."
+            echo "🛠️ Preparing deployment directory..."
+            sudo mkdir -p /var/www/frontend
+            sudo chown -R $USER:$USER /var/www/frontend
+            sudo chmod -R 775 /var/www/frontend
+            ls -la /var/www/frontend
+
+      - name: Upload Frontend Build
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          source: "frontend/dist/**"
+          target: "/var/www/frontend"
+          strip_components: 1
+          overwrite: true
+
+      - name: Set Final Permissions
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            echo "🔒 Setting final permissions..."
+            sudo chown -R www-data:www-data /var/www/frontend
+            sudo chmod -R 755 /var/www/frontend
+
+      - name: Deploy Backend & Configure Nginx
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            echo "🚀 Starting full deployment..."
             
             # Install dependencies
             sudo apt update
             sudo apt install -y nginx docker.io
             
-            # Configure frontend directory
-            sudo mkdir -p /var/www/frontend
-            sudo chown -R ubuntu:ubuntu /var/www/frontend
-            sudo chmod -R 755 /var/www/frontend
-            
             # Configure Nginx
-            sudo tee /etc/nginx/sites-available/ecommerce > /dev/null <<EOF
+            sudo tee /etc/nginx/sites-available/ecommerce > /dev/null <<'EOF'
             server {
               listen 80;
-              server_name ${{ secrets.DOMAIN || 'localhost' }};
+              server_name ${{ secrets.DOMAIN || '$host' }};
               
               root /var/www/frontend;
               index index.html;
               
               location / {
-                try_files \$uri \$uri/ /index.html;
+                try_files $uri $uri/ /index.html;
               }
               
               location /api/ {
                 proxy_pass http://localhost:3000;
                 proxy_http_version 1.1;
-                proxy_set_header Upgrade \$http_upgrade;
+                proxy_set_header Upgrade $http_upgrade;
                 proxy_set_header Connection 'upgrade';
-                proxy_set_header Host \$host;
-                proxy_cache_bypass \$http_upgrade;
-                proxy_set_header X-Real-IP \$remote_addr;
+                proxy_set_header Host $host;
+                proxy_cache_bypass $http_upgrade;
+                proxy_set_header X-Real-IP $remote_addr;
               }
             }
             EOF
@@ -86,7 +105,7 @@ jobs:
             sudo ln -sf /etc/nginx/sites-available/ecommerce /etc/nginx/sites-enabled/default
             sudo nginx -t && sudo systemctl restart nginx
             
-            # Deploy backend container with explicit 0.0.0.0 binding
+            # Deploy backend container
             sudo docker stop backend || true
             sudo docker rm backend || true
             sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/my-backend:latest
@@ -96,13 +115,18 @@ jobs:
               --restart unless-stopped \
               -p 3000:3000 \
               -e NODE_ENV=production \
-              -e BIND_ADDRESS=0.0.0.0 \  # Critical fix
+              -e BIND_ADDRESS=0.0.0.0 \
               -e PORT=3000 \
               ${{ secrets.DOCKERHUB_USERNAME }}/my-backend:latest
             
             # Verify deployment
-            echo "🔄 Checking backend health..."
-            sleep 10  # Wait for container to start
-            curl -v http://localhost:3000/api/health || echo "Backend health check failed"
+            echo "🔄 Checking services..."
+            sleep 10  # Wait for services to start
             
-            echo "🚀 Deployment complete!"
+            echo "🔍 Nginx status:"
+            sudo systemctl status nginx --no-pager
+            
+            echo "🔍 Backend container status:"
+            sudo docker ps -a | grep backend
+            
+            echo "✅ Deployment complete!"

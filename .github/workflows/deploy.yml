@@ -1,140 +1,140 @@
 name: Deploy to EC2
- 
- on:
-   push:
-     branches:
-       - main
- 
- jobs:
-   deploy:
-     runs-on: ubuntu-latest
- 
-     steps:
-       - name: Checkout Code
-         uses: actions/checkout@v3
- 
-       - name: Setup Node.js
-         uses: actions/setup-node@v3
-         with:
-           node-version: '18'
- 
-       - name: Build Frontend
-         working-directory: frontend
-         run: |
-           npm ci
-           npm run build
-         env:
-           VITE_API_BASE_URL: '/api'
- 
-       - name: Prepare Target Directory
-         uses: appleboy/ssh-action@v1.0.0
-         with:
-           host: ${{ secrets.EC2_HOST }}
-           username: ${{ secrets.EC2_USER }}
-           key: ${{ secrets.EC2_KEY }}
-           script: |
-             sudo mkdir -p /var/www/frontend
-             sudo chown -R $USER:$USER /var/www/frontend
-             sudo chmod -R 775 /var/www/frontend
- 
-       - name: Upload Frontend Files
-         uses: appleboy/scp-action@v0.1.4
-         with:
-           host: ${{ secrets.EC2_HOST }}
-           username: ${{ secrets.EC2_USER }}
-           key: ${{ secrets.EC2_KEY }}
-           source: "frontend/dist/."
-           target: "/var/www/frontend"
-           strip_components: 2
-           overwrite: true
- 
-       - name: Fix Permissions
-         uses: appleboy/ssh-action@v1.0.0
-         with:
-           host: ${{ secrets.EC2_HOST }}
-           username: ${{ secrets.EC2_USER }}
-           key: ${{ secrets.EC2_KEY }}
-           script: |
-             sudo chown -R www-data:www-data /var/www/frontend
-             sudo find /var/www/frontend -type d -exec chmod 755 {} \;
-             sudo find /var/www/frontend -type f -exec chmod 644 {} \;
- 
-       - name: Deploy Backend
-         uses: appleboy/ssh-action@v1.0.0
-         with:
-           host: ${{ secrets.EC2_HOST }}
-           username: ${{ secrets.EC2_USER }}
-           key: ${{ secrets.EC2_KEY }}
-           script: |
-             sudo docker stop backend || true
-             sudo docker rm backend || true
- 
-             sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/my-backend:latest
- 
-             sudo docker run -d \
-               --name backend \
-               --network host \
-               --restart unless-stopped \
-               -e NODE_ENV=production \
-               -e BIND_ADDRESS=0.0.0.0 \
-               -e PORT=4000 \
-               -e CORS_ORIGIN="http://${{ secrets.DOMAIN }},http://${{ secrets.EC2_HOST }}" \
-               ${{ secrets.DOCKERHUB_USERNAME }}/my-backend:latest
- 
-             sleep 5
-             curl -v http://localhost:4000/api/product/list || exit 1
- 
-       - name: Configure Nginx
-         uses: appleboy/ssh-action@v1.0.0
-         with:
-           host: ${{ secrets.EC2_HOST }}
-           username: ${{ secrets.EC2_USER }}
-           key: ${{ secrets.EC2_KEY }}
-           script: |
-             sudo tee /etc/nginx/sites-available/ecommerce > /dev/null <<'EOF'
-             server {
-                 listen 80;
-                 server_name ${{ secrets.DOMAIN }} ${{ secrets.EC2_HOST }};
-                 
-                 root /var/www/frontend;
-                 index index.html;
-                 
-                 location / {
-                     try_files $uri $uri/ /index.html;
-                     add_header Cache-Control "no-cache";
-                 }
-                 
-                 location /api/ {
-                     proxy_pass http://127.0.0.1:4000/;
-                     proxy_http_version 1.1;
-                     proxy_set_header Upgrade $http_upgrade;
-                     proxy_set_header Connection 'upgrade';
-                     proxy_set_header Host $host;
-                     proxy_set_header X-Real-IP $remote_addr;
-                     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                     proxy_cache_bypass $http_upgrade;
-                     
-                     proxy_connect_timeout 600s;
-                     proxy_send_timeout 600s;
-                     proxy_read_timeout 600s;
-                     send_timeout 600s;
-                 }
-                 
-                 location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
-                     expires 1y;
-                     add_header Cache-Control "public, immutable";
-                 }
-             }
-             EOF
-             
-             sudo ln -sf /etc/nginx/sites-available/ecommerce /etc/nginx/sites-enabled/default
-             sudo nginx -t && sudo systemctl restart nginx
- 
-       - name: Verify Deployment
-         uses: appleboy/ssh-action@v1.0.0
-         with:
-           host: ${{ secrets.EC2_HOST }}
-           username: ${{ secrets.EC2_USER }}
-           key: ${{ secrets.EC2_KEY }}
-           script: |
-             curl -v http://localhost
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Build Frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+        env:
+          VITE_API_BASE_URL: '/api'
+
+      - name: Prepare Target Directory
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            sudo mkdir -p /var/www/frontend
+            sudo chown -R $USER:$USER /var/www/frontend
+            sudo chmod -R 775 /var/www/frontend
+
+      - name: Upload Frontend Files
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          source: "frontend/dist/."
+          target: "/var/www/frontend"
+          strip_components: 2
+          overwrite: true
+
+      - name: Fix Permissions
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            sudo chown -R www-data:www-data /var/www/frontend
+            sudo find /var/www/frontend -type d -exec chmod 755 {} \;
+            sudo find /var/www/frontend -type f -exec chmod 644 {} \;
+
+      - name: Deploy Backend
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            sudo docker stop backend || true
+            sudo docker rm backend || true
+
+            sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/my-backend:latest
+
+            sudo docker run -d \
+              --name backend \
+              --network host \
+              --restart unless-stopped \
+              -e NODE_ENV=production \
+              -e BIND_ADDRESS=0.0.0.0 \
+              -e PORT=4000 \
+              -e CORS_ORIGIN="http://${{ secrets.DOMAIN }},http://${{ secrets.EC2_HOST }}" \
+              ${{ secrets.DOCKERHUB_USERNAME }}/my-backend:latest
+
+            sleep 5
+            curl -v http://localhost:4000/api/product/list || exit 1
+
+      - name: Configure Nginx
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            sudo tee /etc/nginx/sites-available/ecommerce > /dev/null <<'EOF'
+            server {
+                listen 80;
+                server_name ${{ secrets.DOMAIN }} ${{ secrets.EC2_HOST }};
+                
+                root /var/www/frontend;
+                index index.html;
+                
+                location / {
+                    try_files $uri $uri/ /index.html;
+                    add_header Cache-Control "no-cache";
+                }
+                
+                location /api/ {
+                    proxy_pass http://127.0.0.1:4000/;
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade $http_upgrade;
+                    proxy_set_header Connection 'upgrade';
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_cache_bypass $http_upgrade;
+                    
+                    proxy_connect_timeout 600s;
+                    proxy_send_timeout 600s;
+                    proxy_read_timeout 600s;
+                    send_timeout 600s;
+                }
+                
+                location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
+                    expires 1y;
+                    add_header Cache-Control "public, immutable";
+                }
+            }
+            EOF
+
+            sudo ln -sf /etc/nginx/sites-available/ecommerce /etc/nginx/sites-enabled/default
+            sudo nginx -t && sudo systemctl restart nginx
+
+      - name: Verify Deployment
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_KEY }}
+          script: |
+            curl -v http://localhost

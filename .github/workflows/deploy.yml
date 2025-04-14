@@ -108,7 +108,7 @@ jobs:
              
                  # SSL certificates
                  ssl_certificate /etc/letsencrypt/live/befunky.duckdns.org/fullchain.pem;
-                 ssl_certificate_key /etc/letsencrypt/live/befunkey.duckdns.org;/privkey.pem;
+                 ssl_certificate_key /etc/letsencrypt/live/befunkey.duckdns.org/privkey.pem;
              
                  # Other SSL settings
                  ssl_protocols TLSv1.2 TLSv1.3;

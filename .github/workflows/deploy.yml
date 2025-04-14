@@ -95,7 +95,7 @@ jobs:
             # HTTP to HTTPS Redirection
              server {
                  listen 80;
-                 server_name ${{ secrets.DOMAIN }} ${{ secrets.EC2_HOST }};
+                 server_name befunky.duckdns.org;
                  
                  # Redirect HTTP to HTTPS
                  return 301 https://$host$request_uri;
@@ -104,11 +104,11 @@ jobs:
              # HTTPS Configuration (SSL)
              server {
                  listen 443 ssl;
-                 server_name ${{ secrets.DOMAIN }} ${{ secrets.EC2_HOST }};
+                 server_name  befunky.duckdns.org;
              
                  # SSL certificates
-                 ssl_certificate /etc/letsencrypt/live/${{ secrets.DOMAIN }}/fullchain.pem;
-                 ssl_certificate_key /etc/letsencrypt/live/${{ secrets.DOMAIN }}/privkey.pem;
+                 ssl_certificate /etc/letsencrypt/live/befunky.duckdns.org/fullchain.pem;
+                 ssl_certificate_key /etc/letsencrypt/live/befunkey.duckdns.org;/privkey.pem;
              
                  # Other SSL settings
                  ssl_protocols TLSv1.2 TLSv1.3;
@@ -151,8 +151,8 @@ jobs:
             
             sudo ln -sf /etc/nginx/sites-available/ecommerce /etc/nginx/sites-enabled/default
             sudo nginx -t && sudo systemctl restart nginx
-            sudo apt install certbot python3-certbot-nginx
-            sudo certbot --nginx -d ${{ secrets.DOMAIN }}
+            sudo apt install -y certbot python3-certbot-nginx
+            sudo certbot --nginx -d befunky.duckdns.org;
 
 
       - name: Verify Deployment

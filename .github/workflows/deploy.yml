@@ -45,7 +45,7 @@ jobs:
           key: ${{ secrets.EC2_KEY }}
           source: "frontend/dist/."
           target: "/var/www/frontend"
-          strip_components: 1
+          strip_components: 2
           overwrite: true
 
       - name: Fix Permissions

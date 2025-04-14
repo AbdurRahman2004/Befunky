@@ -93,46 +93,38 @@ jobs:
           script: |
             sudo tee /etc/nginx/sites-available/ecommerce > /dev/null <<'EOF'
             # HTTP to HTTPS Redirection
-             server {
-                 listen 80;
-                 server_name befunky.duckdns.org;
-                 
-                 root /var/www/frontend;
-                 index index.html; 
-             }
-             
-                  location / {
-              try_files $uri $uri/ /index.html;
-              add_header Cache-Control "no-cache";
-            }
-                 
-             
-                 location /api/ {
-              proxy_pass http://127.0.0.1:4000/;
-              proxy_http_version 1.1;
-              proxy_set_header Upgrade $http_upgrade;
-              proxy_set_header Connection 'upgrade';
-              proxy_set_header Host $host;
-              proxy_set_header X-Real-IP $remote_addr;
-              proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-              proxy_cache_bypass $http_upgrade;
-              }
-            }
-             
-                 # Caching for static assets (JavaScript, CSS, images, etc.)
-                 location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
-                     expires 1y;
-                     add_header Cache-Control "public, immutable";
-                 }
-             }
-
-            EOF
+            server {
+                listen 80;
+                server_name befunky.duckdns.org;
+                
+                root /var/www/frontend;
+                index index.html;
             
-            sudo ln -sf /etc/nginx/sites-available/ecommerce /etc/nginx/sites-enabled/default
-            sudo nginx -t && sudo systemctl restart nginx  
-            sudo certbot --nginx -d befunky.duckdns.org --non-interactive --agree-tos -m ar978874@example.com
-            sudo systemctl reload nginx
-
+                # Redirect HTTP to HTTPS
+                location / {
+                    try_files $uri $uri/ /index.html;
+                    add_header Cache-Control "no-cache";
+                }
+            
+                # Reverse proxy API requests to the backend
+                location /api/ {
+                    proxy_pass http://127.0.0.1:4000/;
+                    proxy_http_version 1.1;
+                    proxy_set_header Upgrade $http_upgrade;
+                    proxy_set_header Connection 'upgrade';
+                    proxy_set_header Host $host;
+                    proxy_set_header X-Real-IP $remote_addr;
+                    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                    proxy_cache_bypass $http_upgrade;
+                }
+            
+                # Caching for static assets (JavaScript, CSS, images, etc.)
+                location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg)$ {
+                    expires 1y;
+                    add_header Cache-Control "public, immutable";
+                }
+            }
+            EOF
 
       - name: Verify Deployment
         uses: appleboy/ssh-action@v1.0.0
@@ -143,5 +135,3 @@ jobs:
           script: |
             curl -v http://localhost
             curl -v http://localhost/api/health
-
-          

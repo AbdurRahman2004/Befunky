@@ -45,7 +45,7 @@ jobs:
           key: ${{ secrets.EC2_KEY }}
           source: "frontend/dist/*"
           target: "/var/www/frontend"
-          strip_components: 0
+          strip_components: 1
           overwrite: true
 
       - name: Fix Permissions
@@ -105,7 +105,7 @@ jobs:
                 }
                 
                 location /api/ {
-                    proxy_pass http://127.0.0.1:4000;
+                    proxy_pass http://127.0.0.1:4000/;
                     proxy_http_version 1.1;
                     proxy_set_header Upgrade $http_upgrade;
                     proxy_set_header Connection 'upgrade';

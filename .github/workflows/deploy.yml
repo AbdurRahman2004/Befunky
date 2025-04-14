@@ -101,27 +101,8 @@ jobs:
                  return 301 https://$host$request_uri;
              }
              
-             # HTTPS Configuration (SSL)
-             server {
-                 listen 443 ssl;
-                 server_name  befunky.duckdns.org;
-             
-                 # SSL certificates
-                 ssl_certificate /etc/letsencrypt/live/befunky.duckdns.org/fullchain.pem;
-                 ssl_certificate_key /etc/letsencrypt/live/befunky.duckdns.org/privkey.pem;
-             
-                 # Other SSL settings
-                 ssl_protocols TLSv1.2 TLSv1.3;
-                 ssl_ciphers 'HIGH:!aNULL:!MD5';
-             
-                 root /var/www/frontend;
-                 index index.html;
-             
-                 # Serve React app's static files
-                 location / {
-                     try_files $uri $uri/ /index.html;
-                     add_header Cache-Control "no-cache";
-                 }
+            
+                 
              
                  # Reverse proxy API requests to the backend
                  location /api/ {

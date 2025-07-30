@@ -8,20 +8,20 @@ import producRouter from "./routes/productRoute.js"
 import cartRouter from "./routes/cartRoute.js"
 import orderRouter from "./routes/orderRoute.js"
 
- //  App Config
+ //    App Config
 
  const app = express()
  const port = process.env.PORT || 4000
  connectDB()
  connectCloudinary()
 
- // Middlewares
+ //   Middlewares
 
-app.use(express.json())  //used parsing the request using json
+app.use(express.json())  //Used parsing the request using json
 app.use(cors())
 
 
-// API ENDPOINTS 
+//    API ENDPOINTS 
 
 app.use("/api/user",userRouter) //api calls from front end like api/user/login  api/user redirects it to userRoute now go and check userRouter
 app.use("/api/product",producRouter)

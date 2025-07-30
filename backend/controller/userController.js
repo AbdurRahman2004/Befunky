@@ -6,7 +6,7 @@ import bcrypt from "bcrypt"
 import jwt from "jsonwebtoken"
 
 const createToken = (id) => {
-    return jwt.sign({id},process.env.JWT_SECRET)
+    return jwt.sign({id},process.env.JWT_SECRET,{expiresIn : '1h'})
 
     // this will seal the id with the signature we provide and whenever client get the id he tries to open it with the same seal if it matches then accept or else the server will reject it
 }
@@ -45,7 +45,6 @@ const registerUser = async (req,res) => {
     const {name , email , password} = req.body;
     
    // Checking user already exits or not
-
    const exists = await userModel.findOne({email})
 
    if(exists){

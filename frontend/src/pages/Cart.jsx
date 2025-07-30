@@ -3,11 +3,22 @@ import { ShopContext } from '../context/shopContext'
 import Title from '../components/Title';
 import { assets } from '../assets/assets';
 import CartTotal from '../components/CartTotal';
+import { toast } from 'react-toastify';
+
 
 const Cart = () => {
-  const {products , currency ,navigate, cartItems , updateQuantity} = useContext(ShopContext);
+  const {products ,token, currency ,navigate, cartItems , updateQuantity} = useContext(ShopContext);
 
   const [cartData , setCartData] = useState([]);
+
+   useEffect(() => {
+    if (!token) {
+      toast.info("Please login to view your cart");
+      setCartData([]);
+      navigate("/login");
+    }
+  }, [token]);
+
 
   useEffect(()=>{
     if(products.length>0){

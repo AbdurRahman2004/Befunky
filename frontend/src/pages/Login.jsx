@@ -67,7 +67,7 @@ const Login = () => {
           currentState === 'Login' ? <p onClick={()=>setCurrentState('Sign Up')} className='cursor-pointer'>Create Account</p> : <p onClick={()=>setCurrentState('Login')} className='cursor-pointer'>Login Here</p>
         }
       </div>
-      <input type="submit" className='bg-black text-white font-light px-8 py-2 mt-4'value={currentState === 'Login' ? 'Sign Up' : 'Sign In' } />
+      <input type="submit" className='bg-black text-white font-light px-8 py-2 mt-4'value={currentState === 'Login' ? 'Sign In' : 'Sign Up' } />
 
     </form>
   )

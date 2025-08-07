@@ -11,6 +11,10 @@ const createToken = (id) => {
     // this will seal the id with the signature we provide and whenever client get the id he tries to open it with the same seal if it matches then accept or else the server will reject it
 }
 
+const createAdminToken = (email,password) => {
+  return jwt.sign(email+password,process.env.JWT_SECRET)
+}
+
 
 // Route for user login
 const loginUser = async (req,res) => {

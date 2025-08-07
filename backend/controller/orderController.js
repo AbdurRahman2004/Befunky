@@ -14,7 +14,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 // placeing order over Cod
 const placeOrder = async (req,res) => {
     try {
+        
         const { userId , items ,amount ,address} = req.body;
+        //console.log(req.body);
         const orderData = {
             userId ,
             items,
@@ -24,10 +26,12 @@ const placeOrder = async (req,res) => {
             payment: false,
             date: Date.now()
         }
+        
 
         const newOrder = new orderModel(orderData)
         await newOrder.save();
         await userModel.findByIdAndUpdate(userId, {cartData:{}})
+        console.log(orderData)
 
         res.json({success:true , message: "Order Placed"})
 
